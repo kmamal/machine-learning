@@ -17,21 +17,21 @@
     "@kmamal/disjoint-set": "^0.0.1",
     "@kmamal/geometry": "^0.0.10",
     "@kmamal/heap": "^0.0.9",
-    "@kmamal/hyperplane-tree": "^0.0.2",
+    "@kmamal/hyperplane-tree": "^0.0.3",
     "@kmamal/indexed-item-array": "^0.0.4",
-    "@kmamal/key-commands": "^0.0.8",
-    "@kmamal/linear-algebra": "^0.0.6",
-    "@kmamal/numbers": "^0.0.4",
+    "@kmamal/key-commands": "^0.0.9",
+    "@kmamal/linear-algebra": "^0.0.7",
+    "@kmamal/numbers": "^0.0.12",
     "@kmamal/sampling": "^0.0.3",
     "@kmamal/statistics": "^0.0.1",
     "@kmamal/triangular": "^0.0.1",
-    "@kmamal/util": "^0.2.17",
+    "@kmamal/util": "^0.2.28",
     "json5": "^2.2.3"
   },
   "devDependencies": {
-    "@kmamal/sdl": "^0.10.7",
-    "@kmamal/testing": "^0.0.30",
-    "@napi-rs/canvas": "^0.1.68"
+    "@kmamal/sdl": "^0.11.7",
+    "@kmamal/testing": "^0.0.31",
+    "@napi-rs/canvas": "^0.1.70"
   },
   "exports": {
     "./decision-tree": "./src/decision-tree/index.js",
