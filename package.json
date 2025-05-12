@@ -1,21 +1,80 @@
 {
   "version": "0.0.0",
-  "name": "@kmamal/statistics",
-  "description": "statistics",
+  "name": "@kmamal/machine-learning",
+  "description": "machine-learning",
   "repository": {
     "type": "git",
-    "url": "git@github.com:kmamal/statistics.git"
+    "url": "git+ssh://git@github.com:kmamal/machine-learning.git"
   },
   "main": "src/index.js",
   "scripts": {
-    "test": "./scripts/run-tests.sh",
+    "test": "npx @kmamal/testing",
     "update-exports": "node ./scripts/update-exports.mjs"
   },
   "license": "MIT",
   "dependencies": {
-    "@kmamal/util": "^0.1.11"
+    "@kmamal/counts": "^0.0.8",
+    "@kmamal/disjoint-set": "^0.0.1",
+    "@kmamal/geometry": "^0.0.10",
+    "@kmamal/heap": "^0.0.9",
+    "@kmamal/hyperplane-tree": "^0.0.2",
+    "@kmamal/indexed-item-array": "^0.0.4",
+    "@kmamal/key-commands": "^0.0.8",
+    "@kmamal/linear-algebra": "^0.0.6",
+    "@kmamal/numbers": "^0.0.4",
+    "@kmamal/sampling": "^0.0.3",
+    "@kmamal/statistics": "^0.0.1",
+    "@kmamal/triangular": "^0.0.1",
+    "@kmamal/util": "^0.2.17",
+    "json5": "^2.2.3"
   },
   "devDependencies": {
-    "@kmamal/testing": "^0.0.21"
+    "@kmamal/sdl": "^0.10.7",
+    "@kmamal/testing": "^0.0.30",
+    "@napi-rs/canvas": "^0.1.68"
+  },
+  "exports": {
+    "./decision-tree": "./src/decision-tree/index.js",
+    "./naive-bayes": "./src/naive-bayes/index.js",
+    "./logistic-regression": "./src/logistic-regression.js",
+    "./k-means/elkans": "./src/k-means/elkans.js",
+    "./k-means/lloyd": "./src/k-means/lloyd.js",
+    "./k-means/initialization/plus-plus": "./src/k-means/initialization/plus-plus.js",
+    "./k-means/initialization/forgy": "./src/k-means/initialization/forgy.js",
+    "./ensemble/boosting/ada-boost": "./src/ensemble/boosting/ada-boost.js",
+    "./ensemble/stacking": "./src/ensemble/stacking.js",
+    "./ensemble/selection": "./src/ensemble/selection.js",
+    "./ensemble/aggregate/weighted-average": "./src/ensemble/aggregate/weighted-average.js",
+    "./ensemble/aggregate/average": "./src/ensemble/aggregate/average.js",
+    "./ensemble/aggregate/majority": "./src/ensemble/aggregate/majority.js",
+    "./ensemble/aggregate/weighted-majority": "./src/ensemble/aggregate/weighted-majority.js",
+    "./ensemble/blending": "./src/ensemble/blending.js",
+    "./ensemble/bagging": "./src/ensemble/bagging.js",
+    "./random-forest": "./src/random-forest/index.js",
+    "./cross-validation/k-fold": "./src/cross-validation/k-fold.js",
+    "./cross-validation/holdout": "./src/cross-validation/holdout.js",
+    "./cross-validation/bootstrap": "./src/cross-validation/bootstrap.js",
+    "./linear-regression": "./src/linear-regression/index.js",
+    "./k-nearest-neighbors/space-partition": "./src/k-nearest-neighbors/space-partition.js",
+    "./k-nearest-neighbors/aggregate/weighted-average": "./src/k-nearest-neighbors/aggregate/weighted-average.js",
+    "./k-nearest-neighbors/aggregate/average": "./src/k-nearest-neighbors/aggregate/average.js",
+    "./k-nearest-neighbors/aggregate/majority": "./src/k-nearest-neighbors/aggregate/majority.js",
+    "./k-nearest-neighbors/aggregate/weighted-majority": "./src/k-nearest-neighbors/aggregate/weighted-majority.js",
+    "./k-nearest-neighbors/linear": "./src/k-nearest-neighbors/linear.js",
+    "./neural-network": "./src/neural-network/index.js",
+    "./neural-network/softmax": "./src/neural-network/softmax.js",
+    "./neural-network/activation-functions": "./src/neural-network/activation-functions.js",
+    "./evaluation": "./src/evaluation.js",
+    "./loaders/load-csv": "./src/loaders/load-csv.js",
+    "./loaders/load-dataset": "./src/loaders/load-dataset.js",
+    "./hierarchical-clustering/single-linkage": "./src/hierarchical-clustering/single-linkage.js",
+    "./hierarchical-clustering/strategies/nearest-neighbor-chain": "./src/hierarchical-clustering/strategies/nearest-neighbor-chain.js",
+    "./hierarchical-clustering/strategies/agglomerate": "./src/hierarchical-clustering/strategies/agglomerate.js",
+    "./hierarchical-clustering/centroids": "./src/hierarchical-clustering/centroids.js",
+    "./baseline/random": "./src/baseline/random.js",
+    "./baseline/majority": "./src/baseline/majority.js",
+    "./kmeans": "./viz/kmeans.js",
+    "./single-linkage": "./viz/single-linkage.js",
+    "./centroids": "./viz/centroids.js"
   }
 }

@@ -1,6 +1,6 @@
 import Fs from 'node:fs/promises'
 import Path from 'node:path'
-import { fileURLToPath } from 'url'
+import { fileURLToPath } from 'node:url'
 
 const rootDir = Path.resolve(Path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(rootDir)

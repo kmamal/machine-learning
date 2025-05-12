@@ -1,0 +1,11 @@
+[
+	{ type: 'real', name: "sepal length in cm" },
+	{ type: 'real', name: "sepal width in cm" },
+	{ type: 'real', name: "petal length in cm" },
+	{ type: 'real', name: "petal width in cm" },
+	{ type: 'nominal', name: "class", values: [
+		'Iris-setosa',
+		'Iris-versicolor',
+		'Iris-virginica',
+	] },
+]
