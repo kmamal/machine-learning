@@ -9,7 +9,7 @@ const makeLearner = ({ domain, makeBaseLearner, k, fnAggregate }) => {
 		return { ...variable, index }
 	}).filter(Boolean)
 
-	const train = (samples) => {
+	const train = async (samples) => {
 		const N = samples.length
 		const M = usedVariables.length
 		const S = M - Math.max(1, Math.floor(Math.sqrt(M)))
@@ -26,7 +26,7 @@ const makeLearner = ({ domain, makeBaseLearner, k, fnAggregate }) => {
 			for (const index of nulledIndexes) { subDomain[index] = null }
 
 			const baseLearner = makeBaseLearner({ domain: subDomain })
-			const baseModel = baseLearner.train(samples)
+			const baseModel = await baseLearner.train(samples)
 			trees[j] = { baseLearner, baseModel }
 		}
 

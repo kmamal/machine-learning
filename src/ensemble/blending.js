@@ -5,14 +5,14 @@ const makeLearner = ({ domain, baseLearners, makeMetaLearner }) => {
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 	const labelVariable = domain[labelIndex]
 
-	const train = (samples) => {
+	const train = async (samples) => {
 		const M = baseLearners.length
 
 		shuffle.$$$(samples)
 		const { trainingSamples, testingSamples } = holdout(samples, 7 / 10)
 
-		const baseModels = baseLearners
-			.map((baseLearner) => baseLearner.train(trainingSamples))
+		const baseModels = await Promise.all(baseLearners
+			.map(async (baseLearner) => await baseLearner.train(trainingSamples)))
 
 		const metaTrainingSamples = testingSamples.map((sample) => {
 			const metaSample = [
@@ -27,7 +27,7 @@ const makeLearner = ({ domain, baseLearners, makeMetaLearner }) => {
 			...domain,
 			...new Array(M).fill({ ...labelVariable, isLabel: false }),
 		] })
-		const metaModel = metaLearner.train(metaTrainingSamples)
+		const metaModel = await metaLearner.train(metaTrainingSamples)
 
 		return {
 			baseModels,

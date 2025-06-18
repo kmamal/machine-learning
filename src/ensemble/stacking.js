@@ -4,7 +4,7 @@ const makeLearner = ({ domain, baseLearners, k, makeMetaLearner }) => {
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 	const labelVariable = domain[labelIndex]
 
-	const train = (samples) => {
+	const train = async (samples) => {
 		const M = baseLearners.length
 		const baseModels = new Array(M)
 
@@ -18,7 +18,7 @@ const makeLearner = ({ domain, baseLearners, k, makeMetaLearner }) => {
 			const baseLearner = baseLearners[i]
 			let writeIndex = 0
 			for (const { trainingSamples, testingSamples } of kFold(samples, k)) {
-				const partialModel = baseLearner.train(trainingSamples)
+				const partialModel = await baseLearner.train(trainingSamples)
 
 				for (const sample of testingSamples) {
 					const prediction = baseLearner.predict(partialModel, sample).value
@@ -26,14 +26,14 @@ const makeLearner = ({ domain, baseLearners, k, makeMetaLearner }) => {
 				}
 			}
 
-			baseModels[i] = baseLearner.train(samples)
+			baseModels[i] = await baseLearner.train(samples)
 		}
 
 		const metaLearner = makeMetaLearner({ domain: [
 			...new Array(M).fill({ ...labelVariable, isLabel: false }),
 			labelVariable,
 		] })
-		const metaModel = metaLearner.train(predictions)
+		const metaModel = await metaLearner.train(predictions)
 
 		return {
 			baseModels,

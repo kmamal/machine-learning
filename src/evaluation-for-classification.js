@@ -1,7 +1,7 @@
 const { addDefault } = require('@kmamal/util/map/add-default')
 const Counts = require('@kmamal/counts/map')
 
-class Evaluation {
+class EvaluationForClassification {
 	constructor () {
 		this._labels = new Set()
 
@@ -128,4 +128,4 @@ class Evaluation {
 	specificityForLabel (x) { return this.trueNegativeRateForLabel(x) }
 }
 
-module.exports = { Evaluation }
+module.exports = { EvaluationForClassification }

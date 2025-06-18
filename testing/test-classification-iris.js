@@ -3,12 +3,14 @@ const { seed } = require('@kmamal/util/random/seed')
 const { randInt } = require('@kmamal/util/random/rand-int')
 const { shuffle } = require('@kmamal/util/random/shuffle')
 const { holdout } = require('../src/cross-validation/holdout')
+const { Scaler } = require('../src/scaling/dummy')
 
 const Random = require('../src/baseline/random')
 const Majority = require('../src/baseline/majority')
 
-const DecisionTree = require('../src/decision-tree')
 const KNearestNeighbors = require('../src/k-nearest-neighbors/linear')
+const LogisticRegression = require('../src/logistic-regression')
+const DecisionTree = require('../src/decision-tree')
 const NaiveBayes = require('../src/naive-bayes')
 const NeuralNetwork = require('../src/neural-network')
 
@@ -20,21 +22,26 @@ const Blending = require('../src/ensemble/blending')
 const AdaBoost = require('../src/ensemble/boosting/ada-boost')
 const RandomForest = require('../src/random-forest')
 
-const { Evaluation } = require('../src/evaluation')
+const { EvaluationForClassification } = require('../src/evaluation-for-classification')
 const { create } = require('@kmamal/util/array/create')
 const Stat = require('@kmamal/statistics/summary')
 
 
+const args = Object.fromEntries(process.argv.slice(2).map((x) => x.split('=')))
+
 const MAX_SEED = 1e3
-const seedArg = process.argv[2]
-const seedNum = seedArg
-	? parseInt(seedArg, 10) % MAX_SEED
+const seedNum = args.seed
+	? parseInt(args.seed, 10) % MAX_SEED
 	: randInt(0, MAX_SEED)
 console.log({ seedNum })
 seed(seedNum / MAX_SEED)
 
+const filterList = args.only?.split(',').map((x) => new RegExp(x, 'u'))
 
-loadDataset('iris').then(({ domain, samples }) => {
+const N = args.n ?? 10
+
+
+loadDataset('iris').then(async ({ domain, samples }) => {
 	const labelIndex = domain.findIndex((variable) => variable.name === 'class')
 	const labelVariable = domain[labelIndex]
 	labelVariable.isLabel = true
@@ -51,20 +58,26 @@ loadDataset('iris').then(({ domain, samples }) => {
 	]
 
 	const baseLearners = [
-		// ...trivialLearners,
-		{
-			name: 'decision tree',
-			...DecisionTree.makeLearner({
-				domain,
-				limit: (x) => x.splits === 3,
-			}),
-		},
 		{
 			name: 'k nearest neighbors',
 			...KNearestNeighbors.makeLearner({
 				domain,
 				k: 3,
 				fnAggregate: require('../src/k-nearest-neighbors/aggregate/majority').aggregate,
+			}),
+		},
+		{
+			name: 'logistic regression',
+			...LogisticRegression.makeLearner({
+				domain,
+				ridgeNormalizationStrength: 1e-3,
+			}),
+		},
+		{
+			name: 'decision tree',
+			...DecisionTree.makeLearner({
+				domain,
+				limit: (x) => x.splits === 3,
 			}),
 		},
 		{
@@ -78,7 +91,7 @@ loadDataset('iris').then(({ domain, samples }) => {
 			...NeuralNetwork.makeLearner({
 				domain,
 				layout: [ 5 ],
-				activationFunction: require('../src/neural-network/activation-functions').logistic,
+				activationFunction: require('../src/neural-network/activation-functions/logistic'),
 				learningRate: 0.5,
 				k: 100,
 			}),
@@ -153,13 +166,14 @@ loadDataset('iris').then(({ domain, samples }) => {
 	]
 
 	const learners = [
+		// ...trivialLearners,
 		...baseLearners,
 		...ensembleLearners,
-	]
+	].filter((x) => !filterList || filterList.some((p) => p.test(x.name)))
 
-	const N = 10
 	const K = learners.length
-	const allResults = create(K, () => new Array(N))
+	const trainingScores = create(K, () => new Array(N))
+	const testingScores = create(K, () => new Array(N))
 
 
 	for (let i = 0; i < N; i++) {
@@ -168,33 +182,82 @@ loadDataset('iris').then(({ domain, samples }) => {
 		shuffle.$$$(samples)
 		const { trainingSamples, testingSamples } = holdout(samples, 7 / 10)
 
+		const scaler = new Scaler(domain)
+		scaler.fit(trainingSamples)
+		const scaledTrainingSamples = trainingSamples.map((sample) => scaler.map(sample))
+
+		const V = testingSamples.length
+		const scaledTestingSamples = new Array(V)
+		const labels = new Array(V)
+		for (let t = 0; t < V; t++) {
+			const scaledTestingSample = scaler.map(testingSamples[t])
+			labels[t] = scaledTestingSample[labelIndex]
+			scaledTestingSample[labelIndex] = null
+			scaledTestingSamples[t] = scaledTestingSample
+		}
+
 		for (let j = 0; j < K; j++) {
-			shuffle.$$$(trainingSamples)
-
 			const { train, predict } = learners[j]
-			const model = train(trainingSamples)
 
-			const evaluation = new Evaluation()
-			for (const sample of testingSamples) {
-				const predicted = predict(model, sample).value
-				const actual = sample[labelIndex]
-				evaluation.addResult(actual, predicted)
+			shuffle.$$$(scaledTrainingSamples)
+			const model = await train(scaledTrainingSamples)
+
+			const trainingEvaluation = new EvaluationForClassification()
+			shuffle.$$$(scaledTrainingSamples)
+			for (let t = 0; t < scaledTrainingSamples.length; t++) {
+				const scaledTrainingSample = scaledTrainingSamples[t]
+				const predicted = predict(model, scaledTrainingSample).value
+				const actual = scaledTrainingSample[labelIndex]
+				trainingEvaluation.addResult(actual, predicted)
 			}
+			trainingScores[j][i] = trainingEvaluation.lift()
 
-			allResults[j][i] = evaluation.lift()
+			const testingEvaluation = new EvaluationForClassification()
+			for (let t = 0; t < scaledTestingSamples.length; t++) {
+				const scaledTestingSample = scaledTestingSamples[t]
+				const predicted = predict(model, scaledTestingSample).value
+				const actual = labels[t]
+				testingEvaluation.addResult(actual, predicted)
+			}
+			testingScores[j][i] = testingEvaluation.lift()
 		}
 	}
 
+
+	const f = (x) => x.toFixed(2)
+	const p = (x) => f(x).padStart(5)
 	console.log()
 	for (let j = 0; j < K; j++) {
 		const { name } = learners[j]
-		const results = allResults[j]
-		const min = Math.min(...results)
-		const max = Math.max(...results)
-		const mean = Stat.mean(results)
-		const variance = Stat.sampleVariance(results)
 
-		const f = (x) => x.toFixed(2).padStart(5)
-		console.log(`${f(mean)} ±${f(variance)} (${f(min)}-${f(max)}) ${name}`)
+		trainingOutput: {
+			const results = trainingScores[j]
+
+			const mean = Stat.mean(results)
+			process.stdout.write(`${p(mean)} `)
+
+			if (results.length === 1) { break trainingOutput }
+
+			const min = Math.min(...results)
+			const max = Math.max(...results)
+			const variance = Stat.sampleVariance(results)
+			process.stdout.write(`±${f(variance)} (${f(min)}-${f(max)}) `)
+		}
+
+		testingOutput: {
+			const results = testingScores[j]
+
+			const mean = Stat.mean(results)
+			process.stdout.write(`${p(mean)} `)
+
+			if (results.length === 1) { break testingOutput }
+
+			const min = Math.min(...results)
+			const max = Math.max(...results)
+			const variance = Stat.sampleVariance(results)
+			process.stdout.write(`±${f(variance)} (${f(min)}-${f(max)}) `)
+		}
+
+		console.log(` ${name}`)
 	}
 })

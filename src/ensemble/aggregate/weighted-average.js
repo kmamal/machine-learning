@@ -4,7 +4,7 @@ const aggregate = (results) => {
 	let sumWeights = 0
 	for (let i = 0; i < results.length; i++) {
 		const { value, p } = results[i]
-		sumValues += value
+		sumValues += value * p
 		sumWeights += p
 	}
 	return { value: sumValues / sumWeights, p: null }

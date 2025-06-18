@@ -1,24 +1,46 @@
+const { Scaler } = require('../scaling/robust')
+const { softmax } = require('../softmax')
+
+const { Mapper } = require('@kmamal/domains/make-nominals-one-hot')
+
 const { fillWith } = require('@kmamal/util/array/fill-with')
 const { uniform } = require('@kmamal/util/random/uniform')
 const { shuffle } = require('@kmamal/util/random/shuffle')
-const { softmax } = require('./softmax')
-
-const JS = require('@kmamal/numbers/js')
+const { maxIndex } = require('@kmamal/util/array/max')
+const { zip: zipObject } = require('@kmamal/util/object/zip')
 
 const fillWith$$$ = fillWith.$$$
 
+const JS = require('@kmamal/numbers/js')
+
 
 const makeLearner = ({
-	domain,
+	domain: originalDomain,
 	layout: _layout,
 	activationFunction,
 	learningRate,
 	k,
 }) => {
+	const needsOneHotEncoding = originalDomain.some((variable) => variable?.type === 'nominal')
+	let domain
+	let mapper
+	if (needsOneHotEncoding) {
+		mapper = new Mapper(originalDomain)
+		domain = mapper.mappedDomain()
+	}
+	else {
+		domain = originalDomain
+	}
+
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 	const labelVariable = domain[labelIndex]
-	const labelEq = (labelVariable.Algebra ?? JS).eq
-	const outputClasses = labelVariable.values
+	const isRegression = labelVariable.type !== 'nominal'
+	let labelEq
+	let outputClasses
+	if (!isRegression) {
+		labelEq = (labelVariable.Algebra ?? JS).eq
+		outputClasses = labelVariable.values
+	}
 
 	const variables = domain.map((originalVariable, index) => {
 		if (originalVariable === null || originalVariable.isLabel) { return null }
@@ -38,8 +60,15 @@ const makeLearner = ({
 		return variable.toNumber(value)
 	})
 
-	const train = (samples) => {
-		const layout = [ ..._layout, outputClasses.length ]
+	const train = (originalSamples) => {
+		const scaler = new Scaler(originalDomain)
+		scaler.fit(originalSamples)
+
+		const samples = needsOneHotEncoding
+			? originalSamples.map((sample) => mapper.map(scaler.map(sample)))
+			: originalSamples.map((sample) => scaler.map(sample))
+
+		const layout = [ ..._layout, outputClasses?.length ?? 1 ]
 		const L = layout.length
 		const layers = new Array(L)
 		const activations = new Array(L)
@@ -64,7 +93,7 @@ const makeLearner = ({
 			}
 		}
 
-		const model = { layers, activations }
+		const model = { scaler, layers, activations }
 
 		// Train
 		const { inverseDerivative } = activationFunction
@@ -74,18 +103,26 @@ const makeLearner = ({
 			const r = (k - i) / k * learningRate
 
 			for (const sample of samples) {
-				predict(model, sample)
+				_predict(model, sample)
 				const label = sample[labelIndex]
 
 				// Backpropagation
 				{
 					let layerActivations = activations[L - 1]
 					let layerDeltas = deltas[L - 1]
-					for (let j = 0; j < layerActivations.length; j++) {
-						const expectedActivation = labelEq(outputClasses[j], label) ? 1 : 0
-						const activation = layerActivations[j]
+					if (isRegression) {
+						const activation = layerActivations[0]
+						const expectedActivation = label
 						const error = activation - expectedActivation
-						layerDeltas[j] = error * inverseDerivative(activation)
+						layerDeltas[0] = error * activation
+					}
+					else {
+						for (let j = 0; j < layerActivations.length; j++) {
+							const expectedActivation = labelEq(outputClasses[j], label) ? 1 : 0
+							const activation = layerActivations[j]
+							const error = activation - expectedActivation
+							layerDeltas[j] = error * inverseDerivative(activation)
+						}
 					}
 
 					let lastLayerDeltas = layerDeltas
@@ -135,32 +172,52 @@ const makeLearner = ({
 		return model
 	}
 
-	const predict = (model, sample) => {
+	const _predict = (model, sample) => {
 		const { layers, activations } = model
+		const L = layers.length
+		const { activation } = activationFunction
 
 		let lastLayerActivations = getActivations(sample)
-		for (let i = 0; i < layers.length; i++) {
+		for (let i = 0; i < L; i++) {
 			const weights = layers[i]
 			const layerActivations = activations[i]
 			const M = layerActivations.length
 			const N = lastLayerActivations.length + 1
 
 			for (let m = 0; m < M; m++) {
-				let sum = 0
-				let n = 0
-				for (; n < N - 1; n++) {
-					sum += weights[m * N + n] * lastLayerActivations[n]
+				let dot = weights[m * N]
+				for (let n = 1; n < N - 1; n++) {
+					dot += weights[m * N + n] * lastLayerActivations[n]
 				}
-				layerActivations[m] = activationFunction(sum + weights[m * N + n])
+				layerActivations[m] = isRegression && i === L - 1 ? dot : activation(dot)
 			}
 
 			lastLayerActivations = layerActivations
 		}
 
-		const { p, index } = softmax(activations.at(-1))
+		if (isRegression) {
+			return { value: activations.at(-1)[0] }
+		}
+
+		const normalizedOutputs = softmax(activations.at(-1))
+		const index = maxIndex(normalizedOutputs)
 		const value = outputClasses[index]
-		return { value, p }
+		const p = normalizedOutputs[index]
+		const allP = zipObject(outputClasses, normalizedOutputs)
+		return { value, p, allP }
 	}
+
+	const predict = (model, originalSample) => {
+		const { scaler } = model
+		const sample = needsOneHotEncoding
+			? mapper.map(scaler.map(originalSample))
+			: scaler.map(originalSample)
+
+		const result = _predict(model, sample)
+		result.value = model.scaler.restoreLabel(result.value)
+		return result
+	}
+
 
 	return { train, predict }
 }

@@ -1,76 +1,86 @@
+const JS = require('@kmamal/numbers/js')
+const Mat = require('@kmamal/linear-algebra/matrix').defineFor(JS)
+const { leastSquares } = require('@kmamal/linear-algebra/matrix/least-squares').defineFor(Mat)
 
-const makeLearner = ({ domain }) => {
-	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
+const { Mapper } = require('@kmamal/domains/make-nominals-one-hot')
 
-	const train = (samples) => {
-		const M = samples.length
-		const N = samples[0].length + 1
-
-		const a = new Array(N * N).fill(0)
-		const b = new Array(N).fill(0)
-
-		for (let m = 0; m < M; m++) {
-			const sample = samples[m]
-			const label = sample[labelIndex]
-
-			let i = 0
-			for (; i < N - 1; i++) {
-				const x = sample[i]
-				a[i * N + i] += x * x
-
-				for (let j = 0; j < i; j++) {
-					a[i * N + j] += x * sample[j]
-				}
-
-				b[i] += label * x
-			}
-
-			a[i * N + i] += 1
-			for (let j = 0; j < i; j++) {
-				a[i * N + j] += sample[j]
-			}
-			b[i] += label
-		}
-
-		for (let i = 1; i < N; i++) {
-			for (let j = 0; j < i; j++) {
-				a[j * N + i] = a[i * N + j]
-			}
-		}
-
-		const weights = Mat.solve(a, b)
-		const bias = weights.pop()
-
-		return { weights, bias }
+const makeLearner = ({ domain: originalDomain, degree = 1 }) => {
+	const needsOneHotEncoding = originalDomain.some((variable) => variable?.type === 'nominal')
+	let domain
+	let mapper
+	if (needsOneHotEncoding) {
+		mapper = new Mapper(originalDomain)
+		domain = mapper.mappedDomain()
+	}
+	else {
+		domain = originalDomain
 	}
 
-	const predict = (model, sample) => {
-		const { weights, bias } = model
+	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
+	const variableIndexes = domain
+		.map((variable, i) => {
+			if (variable === null) { return null }
+			if (variable.type === 'nominal') { return null }
+			if (i === labelIndex) { return null }
+			return i
+		})
+		.filter((x) => x !== null)
+	const K = variableIndexes.length
+	const M = K * degree + 1
 
-		let dot = bias
-		for (let i = 0; i < sample.length; i++) {
-			dot += sample[i] * weights[i]
+	const train = (originalSamples) => {
+		const samples = needsOneHotEncoding
+			? originalSamples.map((sample) => mapper.map(sample))
+			: originalSamples
+		const N = samples.length
+
+		const a = new Array(N * M)
+		const b = new Array(N)
+
+		for (let i = 0; i < N; i++) {
+			const sample = samples[i]
+			const label = sample[labelIndex]
+
+			for (let k = 0; k < K; k++) {
+				const index = variableIndexes[k]
+				const x = sample[index]
+				let value = 1
+				for (let d = 0; d < degree; d++) {
+					value *= x
+					a[i * M + k * degree + d] = value
+				}
+			}
+			a[i * M + K * degree] = 1
+			b[i] = label
 		}
 
-		return { value: dot, p: 1 }
+		const weights = leastSquares(a, N, M, b)
+		const intercept = weights.pop()
+
+		return { weights, intercept }
+	}
+
+	const predict = (model, originalSample) => {
+		const { weights, intercept } = model
+		const sample = needsOneHotEncoding
+			? mapper.map(originalSample)
+			: originalSample
+
+		let dot = intercept
+		for (let k = 0; k < K; k++) {
+			const index = variableIndexes[k]
+			const x = sample[index]
+			let value = 1
+			for (let d = 0; d < degree; d++) {
+				value *= x
+				dot += value * weights[k * degree + d]
+			}
+		}
+
+		return { value: dot, p: null }
 	}
 
 	return { train, predict }
 }
-
-const makeSample = (arr, label) => {
-	arr.label = label
-	return arr
-}
-const { train } = makeLearner({ domain: [
-	{ type: 'real' },
-	{ type: 'real' },
-	{ type: 'real', isLabel: true },
-] })
-train([
-	makeSample([ 0, 1, 0.4 ]),
-	makeSample([ 1, 0, 0.5 ]),
-	makeSample([ 1, 1, 0.6 ]),
-])
 
 module.exports = { makeLearner }

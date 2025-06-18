@@ -7,7 +7,7 @@ const prefixSumsTo = prefixSums.to
 const makeLearner = ({ domain, baseLearner, k, fnAggregate }) => {
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 
-	const train = (samples) => {
+	const train = async (samples) => {
 		const N = samples.length
 
 		const baseModels = new Array(k)
@@ -20,7 +20,7 @@ const makeLearner = ({ domain, baseLearner, k, fnAggregate }) => {
 
 		let j = 0
 		for (;;) {
-			const baseModel = baseLearner.train(resampled)
+			const baseModel = await baseLearner.train(resampled)
 
 			let error = 0
 			for (let i = 0; i < N; i++) {
@@ -28,7 +28,8 @@ const makeLearner = ({ domain, baseLearner, k, fnAggregate }) => {
 				const prediction = baseLearner.predict(baseModel, sample).value
 				if (prediction === sample[labelIndex]) {
 					sampleSigns[i] = -1
-				} else {
+				}
+				else {
 					error += sampleWeights[i]
 					sampleSigns[i] = 1
 				}

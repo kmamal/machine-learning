@@ -3,7 +3,8 @@ const { __partition } = require('@kmamal/util/array/partition')
 const { __count, countBy } = require('@kmamal/util/map/count')
 const Counts = require('@kmamal/counts/map')
 const { compareBy } = require('@kmamal/util/function/compare')
-const { _entropy } = require('@kmamal/statistics/entropy')
+const { mean, varianceHavingMean } = require('@kmamal/statistics/summary')
+const { entropyFromCounts } = require('@kmamal/statistics/entropy')
 const { addBy, popBy } = require('@kmamal/heap')
 
 const JS = require('@kmamal/numbers/js')
@@ -11,7 +12,8 @@ const JS = require('@kmamal/numbers/js')
 
 const makeLearner = ({ domain, limit, filter }) => {
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
-
+	const labelVariable = domain[labelIndex]
+	const isLabelReal = labelVariable.type === 'real'
 	const getLabel = (x) => x[labelIndex]
 
 
@@ -31,7 +33,7 @@ const makeLearner = ({ domain, limit, filter }) => {
 	const getInformationGain = (x) => -x.informationGain
 
 
-	const getBestSplit = (samples, start, end) => {
+	const getBestSplitUsingVariance = (samples, start, end) => {
 		const num = end - start
 
 		const bestSplit = {
@@ -41,15 +43,132 @@ const makeLearner = ({ domain, limit, filter }) => {
 			start,
 			mid: null,
 			end,
-			numLeft: null,
-			countsLeft: null,
-			entropyLeft: null,
-			labelLeft: null,
-			numRight: null,
-			countsRight: null,
-			entropyRight: null,
-			labelRight: null,
-			entropyAverage: Infinity,
+			childLeft: null,
+			childRight: null,
+			impurityLeft: null,
+			impurityRight: null,
+			impurityAverage: Infinity,
+		}
+
+		let sumLeft = 0
+		let sumSquaresLeft = 0
+		let numLeft = 0
+		let sumRight = 0
+		let sumSquaresRight = 0
+		let numRight = num
+		for (let i = start; i < end; i++) {
+			const label = samples[i][labelIndex]
+			sumRight += label
+			sumSquaresRight += label * label
+		}
+
+		for (let i = 0; i < variables.length; i++) {
+			const variable = variables[i]
+			if (variable === null) { continue }
+
+			const { isNominal, fnCmp, eq } = variable
+
+			__sort(samples, start, end, fnCmp)
+
+			if (eq(samples[start][i], samples[end - 1][i])) { continue }
+
+			let sample
+			let nextSample = samples[start]
+			for (let j = start + 1; j <= end; j++) {
+				sample = nextSample
+				nextSample = samples[j]
+				const value = sample[i]
+				const label = sample[labelIndex]
+				const label2 = label ** 2
+
+				sumRight -= label
+				sumSquaresRight -= label2
+				numRight--
+				sumLeft += label
+				sumSquaresLeft += label2
+				numLeft++
+
+				if (j === end) {
+					if (!isNominal) { break }
+				}
+				else if (eq(value, nextSample[i])) { continue }
+
+				if (numLeft === 0) { continue }
+				if (numRight === 0) { continue }
+
+				const avgLeft = sumLeft / numLeft
+				const avgRight = sumRight / numRight
+				const varianceLeft = sumSquaresLeft / numLeft - avgLeft ** 2
+				const varianceRight = sumSquaresRight / numRight - avgRight ** 2
+				const varianceAverage = (varianceLeft * numLeft + varianceRight * numRight) / num
+				if (varianceAverage < bestSplit.impurityAverage) {
+					bestSplit.variableIndex = i
+					bestSplit.op = isNominal ? 'eq' : 'lte'
+					bestSplit.value = value
+					bestSplit.mid = start + numLeft
+					bestSplit.childLeft = { value: avgLeft, p: null }
+					bestSplit.childRight = { value: avgRight, p: null }
+					bestSplit.impurityLeft = varianceLeft
+					bestSplit.impurityRight = varianceRight
+					bestSplit.impurityAverage = varianceAverage
+				}
+
+				if (!isNominal) { continue }
+
+				sumRight += sumLeft
+				sumSquaresRight += sumSquaresLeft
+				numRight += numLeft
+				sumLeft = 0
+				sumSquaresLeft = 0
+				numLeft = 0
+			}
+
+			if (isNominal) { continue }
+
+			let tmp
+			tmp = sumRight
+			sumRight = sumLeft
+			sumLeft = tmp
+			tmp = sumSquaresRight
+			sumSquaresRight = sumSquaresLeft
+			sumSquaresLeft = tmp
+			numLeft = 0
+			numRight = num
+		}
+
+		const { variableIndex } = bestSplit
+		if (variableIndex === null) { return null }
+		const splitVariable = variables[variableIndex]
+
+		bestSplit.splitSamples = bestSplit.op === 'lte'
+			? () => {
+				const { fnCmp } = splitVariable
+				__sort(samples, start, end, fnCmp)
+			}
+			: () => {
+				const { eq } = splitVariable
+				const fnPred = (x) => eq(x[variableIndex], bestSplit.value)
+				__partition(samples, start, end, fnPred)
+			}
+
+		return bestSplit
+	}
+
+	const getBestSplitUsingEntropy = (samples, start, end) => {
+		const num = end - start
+
+		const bestSplit = {
+			variableIndex: null,
+			op: null,
+			value: null,
+			start,
+			mid: null,
+			end,
+			childLeft: null,
+			childRight: null,
+			impurityLeft: null,
+			impurityRight: null,
+			impurityAverage: Infinity,
 		}
 
 		let countsLeft = new Map()
@@ -89,23 +208,22 @@ const makeLearner = ({ domain, limit, filter }) => {
 				const numRight = Counts.total(countsRight)
 				if (numRight === 0) { continue }
 
-				const entropyLeft = _entropy(countsLeft, numLeft)
-				const entropyRight = _entropy(countsRight, numRight)
+				const entropyLeft = entropyFromCounts(countsLeft, numLeft)
+				const entropyRight = entropyFromCounts(countsRight, numRight)
 				const entropyAverage = (entropyLeft * numLeft + entropyRight * numRight) / num
-				if (entropyAverage < bestSplit.entropyAverage) {
+				if (entropyAverage < bestSplit.impurityAverage) {
+					const labelLeft = Counts.mostFrequent(countsLeft)
+					const labelRight = Counts.mostFrequent(countsRight)
+
 					bestSplit.variableIndex = i
 					bestSplit.op = isNominal ? 'eq' : 'lte'
 					bestSplit.value = value
 					bestSplit.mid = start + numLeft
-					bestSplit.numLeft = numLeft
-					bestSplit.countsLeft = new Map(countsLeft)
-					bestSplit.entropyLeft = entropyLeft
-					bestSplit.labelLeft = Counts.mostFrequent(countsLeft)
-					bestSplit.numRight = numRight
-					bestSplit.countsRight = new Map(countsRight)
-					bestSplit.entropyRight = entropyRight
-					bestSplit.labelRight = Counts.mostFrequent(countsRight)
-					bestSplit.entropyAverage = entropyAverage
+					bestSplit.childLeft = { value: labelLeft, p: countsLeft.get(labelLeft) / numLeft }
+					bestSplit.childRight = { value: labelRight, p: countsRight.get(labelRight) / numRight }
+					bestSplit.impurityLeft = entropyLeft
+					bestSplit.impurityRight = entropyRight
+					bestSplit.impurityAverage = entropyAverage
 				}
 
 				if (!isNominal) { continue }
@@ -125,25 +243,43 @@ const makeLearner = ({ domain, limit, filter }) => {
 
 		const { variableIndex } = bestSplit
 		if (variableIndex === null) { return null }
+		const splitVariable = variables[variableIndex]
 
-		if (bestSplit.op === 'lte') {
-			const { fnCmp } = variables[variableIndex]
-			__sort(samples, start, end, fnCmp)
-		}
-		else {
-			const { eq } = variables[variableIndex]
-			const fnPred = (x) => eq(x[variableIndex], bestSplit.value)
-			__partition(samples, start, end, fnPred)
-		}
+		bestSplit.splitSamples = bestSplit.op === 'lte'
+			? () => {
+				const { fnCmp } = splitVariable
+				__sort(samples, start, end, fnCmp)
+			}
+			: () => {
+				const { eq } = splitVariable
+				const fnPred = (x) => eq(x[variableIndex], bestSplit.value)
+				__partition(samples, start, end, fnPred)
+			}
 
 		return bestSplit
 	}
 
+	const getBestSplit = isLabelReal
+		? getBestSplitUsingVariance
+		: getBestSplitUsingEntropy
+
 
 	const train = (samples) => {
 		const N = samples.length
-		const rootCounts = countBy(samples, getLabel)
-		const initialEntropy = _entropy(rootCounts, N)
+
+		let rootCounts
+		let rootLabels
+		let rootMean
+		let initialImpurity
+		if (isLabelReal) {
+			rootLabels = samples.map(getLabel)
+			rootMean = mean(rootLabels)
+			initialImpurity = varianceHavingMean(rootLabels, rootMean)
+		}
+		else {
+			rootCounts = countBy(samples, getLabel)
+			initialImpurity = entropyFromCounts(rootCounts, N)
+		}
 
 		let tree = null
 		let size = 0
@@ -152,15 +288,19 @@ const makeLearner = ({ domain, limit, filter }) => {
 
 		const bestSplitForRoot = getBestSplit(samples, 0, N)
 		if (bestSplitForRoot === null) {
+			if (isLabelReal) { return { tree: { value: rootMean, p: null } } }
+
 			const value = Counts.mostFrequent(rootCounts)
 			const p = rootCounts.get(value) / N
 			return { tree: { value, p } }
 		}
+
 		bestSplitForRoot.parent = null
 		bestSplitForRoot.parentSide = null
 		bestSplitForRoot.parentDepth = 0
-		bestSplitForRoot.informationGain = initialEntropy - bestSplitForRoot.entropyAverage
+		bestSplitForRoot.informationGain = initialImpurity - bestSplitForRoot.impurityAverage
 		const potentialSplits = [ bestSplitForRoot ]
+		bestSplitForRoot.splitSamples()
 
 		while (!limit?.({ tree, size, depth, splits, potentialSplits })) {
 			if (potentialSplits.length === 0) { break }
@@ -172,25 +312,22 @@ const makeLearner = ({ domain, limit, filter }) => {
 				start,
 				mid,
 				end,
-				numLeft,
-				countsLeft,
-				entropyLeft,
-				labelLeft,
-				numRight,
-				countsRight,
-				entropyRight,
-				labelRight,
+				childLeft,
+				childRight,
+				impurityLeft,
+				impurityRight,
 				parent,
 				parentSide,
 				parentDepth,
+				splitSamples,
 			} = popBy(potentialSplits, getInformationGain)
 
 			const node = {
 				variableIndex,
 				op,
 				value,
-				left: { value: labelLeft, p: countsLeft.get(labelLeft) / numLeft },
-				right: { value: labelRight, p: countsRight.get(labelRight) / numRight },
+				left: childLeft,
+				right: childRight,
 			}
 
 			if (parent === null) {
@@ -204,8 +341,10 @@ const makeLearner = ({ domain, limit, filter }) => {
 			depth = Math.max(depth, parentDepth + 1)
 			if (node.left.value !== node.right.value) { splits++ }
 
+			splitSamples()
+
 			leftChild: {
-				if (entropyLeft === 0) { break leftChild }
+				if (impurityLeft === 0) { break leftChild }
 
 				const bestSplitForLeft = getBestSplit(samples, start, mid)
 				if (bestSplitForLeft === null) { break leftChild }
@@ -213,14 +352,14 @@ const makeLearner = ({ domain, limit, filter }) => {
 				bestSplitForLeft.parent = node
 				bestSplitForLeft.parentSide = 'left'
 				bestSplitForLeft.parentDepth = parentDepth + 1
-				bestSplitForLeft.informationGain = entropyLeft - bestSplitForLeft.entropyAverage
+				bestSplitForLeft.informationGain = impurityLeft - bestSplitForLeft.impurityAverage
 
 				if (bestSplitForLeft.informationGain === 0 || (filter && !filter(bestSplitForLeft))) { break leftChild }
 				addBy(potentialSplits, bestSplitForLeft, getInformationGain)
 			}
 
 			rightChild: {
-				if (entropyRight === 0) { break rightChild }
+				if (impurityRight === 0) { break rightChild }
 
 				const bestSplitForRight = getBestSplit(samples, mid, end)
 				if (bestSplitForRight === null) { break rightChild }
@@ -228,7 +367,7 @@ const makeLearner = ({ domain, limit, filter }) => {
 				bestSplitForRight.parent = node
 				bestSplitForRight.parentSide = 'right'
 				bestSplitForRight.parentDepth = parentDepth + 1
-				bestSplitForRight.informationGain = entropyRight - bestSplitForRight.entropyAverage
+				bestSplitForRight.informationGain = impurityRight - bestSplitForRight.impurityAverage
 
 				if (bestSplitForRight.informationGain === 0 || (filter && !filter(bestSplitForRight))) { break rightChild }
 				addBy(potentialSplits, bestSplitForRight, getInformationGain)
@@ -244,10 +383,10 @@ const makeLearner = ({ domain, limit, filter }) => {
 		let node = tree
 		while (node.p === undefined) {
 			const { variableIndex, op, value } = node
-			const { Algebra: M = JS } = variables[variableIndex]
+			const variable = variables[variableIndex]
 
 			const x = sample[variableIndex]
-			node = M[op](x, value) ? node.left : node.right
+			node = variable[op](x, value) ? node.left : node.right
 		}
 
 		return node
