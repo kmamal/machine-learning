@@ -1,6 +1,10 @@
 
-const fit = (points, delta = 1) => {
+const fit = (points, options = {}) => {
 	const N = points.length
+
+	const {
+		delta = 1,
+	} = options
 
 	let avgX = 0
 	let avgY = 0

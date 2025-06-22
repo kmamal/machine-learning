@@ -1,8 +1,6 @@
 const OrdinaryLeastSquares = require('./ordinary-least-squares')
 
-const { select } = require('@kmamal/util/array/select')
-
-const _getSlope = (x) => x.slope
+const { median } = require('@kmamal/statistics/summary')
 
 const fit = (points) => {
 	const N = points.length
@@ -13,7 +11,7 @@ const fit = (points) => {
 
 	for (let i = 0; i < N; i++) {
 		const [ ax, ay ] = points[i]
-		for (let j = 0; j < N; j++) {
+		for (let j = 0; j < i; j++) {
 			const [ bx, by ] = points[j]
 			const slope = (by - ay) / (bx - ax)
 
@@ -21,16 +19,18 @@ const fit = (points) => {
 		}
 	}
 
-	const slope = select(candidates, Math.floor(S / 2))
+	const slope = median(candidates)
+	console.log({ candidates, slope })
 
-	candidates.length = N
 	for (let i = 0; i < N; i++) {
 		const [ x, y ] = points[i]
 		const intercept = y - x * slope
 		candidates[i] = intercept
 	}
+	candidates.length = N
 
-	const intercept = select(candidates, Math.floor(N / 2))
+	const intercept = median(candidates)
+	console.log({ candidates, intercept })
 
 	return { slope, intercept }
 }
