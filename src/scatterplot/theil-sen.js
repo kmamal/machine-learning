@@ -20,7 +20,6 @@ const fit = (points) => {
 	}
 
 	const slope = median(candidates)
-	console.log({ candidates, slope })
 
 	for (let i = 0; i < N; i++) {
 		const [ x, y ] = points[i]
@@ -30,7 +29,6 @@ const fit = (points) => {
 	candidates.length = N
 
 	const intercept = median(candidates)
-	console.log({ candidates, intercept })
 
 	return { slope, intercept }
 }
