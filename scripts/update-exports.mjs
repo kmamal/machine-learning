@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url'
 const rootDir = Path.resolve(Path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(rootDir)
 
-await Fs.copyFile('package.json', 'package.json~')
 const pkg = JSON.parse(await Fs.readFile('package.json', 'utf8'))
 
 pkg.exports = {}

@@ -4,11 +4,13 @@ const { weightedLeastSquares } = require('@kmamal/linear-algebra/matrix/weighted
 
 const { median } = require('@kmamal/statistics/summary')
 
+const { clone } = require('@kmamal/util/object/clone')
+
 const _calcCubeWeight = (x) => (1 - Math.abs(x) ** 3) ** 3
 const _calcSquareWeight = (x) => (1 - x ** 2) ** 2
 
 const fit = (unsortedPoints, options = {}) => {
-	const points = unsortedPoints.sort((a, b) => a[0] - b[0])
+	const points = clone(unsortedPoints).sort((a, b) => a[0] - b[0])
 	const N = points.length
 
 	const {

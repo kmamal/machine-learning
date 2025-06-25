@@ -33,7 +33,7 @@ const MAX_SEED = 1e3
 const seedNum = args.seed
 	? parseInt(args.seed, 10) % MAX_SEED
 	: randInt(0, MAX_SEED)
-console.log({ seedNum })
+console.error({ seedNum })
 seed(seedNum / MAX_SEED)
 
 const filterList = args.only?.split(',').map((x) => new RegExp(x, 'u'))
