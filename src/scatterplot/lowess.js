@@ -17,7 +17,7 @@ const fit = (unsortedPoints, options = {}) => {
 		degree = 2,
 		windowSize: _windowSize = Math.ceil(N / 3),
 		robustnessIterations = 3,
-		delta = 0,
+		delta = N > 1 ? (points[N - 1][0] - points[0][0]) / (N - 1) : 0,
 	} = options
 
 	const numCoefficients = degree + 1
