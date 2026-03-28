@@ -17,6 +17,7 @@ const fit = (unsortedPoints, options = {}) => {
 		degree = 2,
 		windowSize: _windowSize = Math.ceil(N / 3),
 		robustnessIterations = 3,
+		delta = 0,
 	} = options
 
 	const numCoefficients = degree + 1
@@ -45,10 +46,34 @@ const fit = (unsortedPoints, options = {}) => {
 		const absoluteDeviations = new Array(N)
 
 		for (let r = 0; r < robustnessIterations; r++) {
-			for (let i = 0; i < N; i++) {
-				const [ x, y ] = points[i]
-				const smoothedValue = predict(model, x)
-				absoluteDeviations[i] = Math.abs(y - smoothedValue)
+			if (delta > 0) {
+				let prevFitted = predict(model, points[0][0])
+				absoluteDeviations[0] = Math.abs(points[0][1] - prevFitted)
+				let i = 0
+				while (i < N - 1) {
+					let j = i + 1
+					while (j < N - 1 && points[j][0] - points[i][0] <= delta) { j++ }
+					const [ xj, yj ] = points[j]
+					const nextFitted = predict(model, xj)
+					absoluteDeviations[j] = Math.abs(yj - nextFitted)
+					if (j > i + 1) {
+						const xi = points[i][0]
+						const dx = xj - xi
+						for (let k = i + 1; k < j; k++) {
+							const [ xk, yk ] = points[k]
+							const t = dx > 0 ? (xk - xi) / dx : 0
+							absoluteDeviations[k] = Math.abs(yk - (prevFitted + t * (nextFitted - prevFitted)))
+						}
+					}
+					prevFitted = nextFitted
+					i = j
+				}
+			}
+			else {
+				for (let i = 0; i < N; i++) {
+					const [ x, y ] = points[i]
+					absoluteDeviations[i] = Math.abs(y - predict(model, x))
+				}
 			}
 
 			const mad = median(absoluteDeviations)
@@ -105,7 +130,6 @@ const predict = (model, x) => {
 
 		for (;;) {
 			if (prevDx < nextDx) {
-				prevDx = x - points[windowStart][0]
 				if (robustnessWeights?.[windowStart] !== 0) {
 					if (prevDx === startDx) { numDuplicateX++ }
 					else { startDx = prevDx }
@@ -115,9 +139,9 @@ const predict = (model, x) => {
 					}
 				}
 				if (--windowStart === -1) { break }
+				prevDx = x - points[windowStart][0]
 			}
 			else {
-				nextDx = points[windowEnd][0] - x
 				if (robustnessWeights?.[windowEnd] !== 0) {
 					if (nextDx === endDx) { numDuplicateX++ }
 					else { endDx = nextDx }
@@ -127,6 +151,7 @@ const predict = (model, x) => {
 					}
 				}
 				if (++windowEnd === N) { break }
+				nextDx = points[windowEnd][0] - x
 			}
 		}
 	}
@@ -246,12 +271,10 @@ const predict = (model, x) => {
 
 		weights[m] = _calcCubeWeight(dx / windowWidth) * robustnessWeight
 
-		let xPow = dx
-		matrix[m * numCoefficients] = 1
-		matrix[m * numCoefficients + 1] = xPow
-		for (let n = 2; n < numCoefficients; n++) {
-			xPow *= dx
+		let xPow = 1
+		for (let n = 0; n < numCoefficients; n++) {
 			matrix[m * numCoefficients + n] = xPow
+			xPow *= dx
 		}
 
 		vector[m] = y

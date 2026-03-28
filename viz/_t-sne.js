@@ -1,4 +1,4 @@
-const Sdl = require('../../sdl-related/sdl/src/types')
+const Sdl = require('../../sdl-related/sdl/src/javascript/index.js')
 const { throttle } = require('@kmamal/util/function/async/throttle')
 const { sleep } = require('@kmamal/util/promise/sleep')
 
