@@ -21,7 +21,7 @@
     "@kmamal/hyperplane-tree": "^0.0.3",
     "@kmamal/indexed-item-array": "^0.0.4",
     "@kmamal/key-commands": "^0.0.9",
-    "@kmamal/linear-algebra": "^0.0.15",
+    "@kmamal/linear-algebra": "^0.0.16",
     "@kmamal/numbers": "^0.0.12",
     "@kmamal/optimization": "^0.0.16",
     "@kmamal/sampling": "^0.0.3",
