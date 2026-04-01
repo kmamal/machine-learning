@@ -71,6 +71,7 @@ loadDataset('boston').then(async ({ domain, samples }) => {
 			name: 'linear regression',
 			...LinearRegression.makeLearner({
 				domain,
+				ridgeNormalizationStrength: 1e-3,
 			}),
 		},
 		{
@@ -78,6 +79,7 @@ loadDataset('boston').then(async ({ domain, samples }) => {
 			...LinearRegression.makeLearner({
 				domain,
 				degree: 2,
+				ridgeNormalizationStrength: 1e-3,
 			}),
 		},
 		{
@@ -85,6 +87,7 @@ loadDataset('boston').then(async ({ domain, samples }) => {
 			...LinearRegression.makeLearner({
 				domain,
 				degree: 3,
+				ridgeNormalizationStrength: 1e-3,
 			}),
 		},
 		{

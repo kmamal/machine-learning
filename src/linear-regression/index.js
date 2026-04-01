@@ -1,11 +1,13 @@
 const JS = require('@kmamal/numbers/js')
 const Mat = require('@kmamal/linear-algebra/matrix').defineFor(JS)
 const { leastSquares } = require('@kmamal/linear-algebra/matrix/least-squares').defineFor(Mat)
+const { ridge } = require('@kmamal/linear-algebra/matrix/ridge').defineFor(Mat)
 
 const { Mapper } = require('@kmamal/domains/make-nominals-one-hot')
+const { Scaler } = require('../scaling/robust')
 
 const makeLearner = (params) => {
-	const { domain: originalDomain, degree = 1 } = params
+	const { domain: originalDomain, degree = 1, ridgeNormalizationStrength = 0 } = params
 	const needsOneHotEncoding = originalDomain.some((variable) => variable?.type === 'nominal')
 	let domain
 	let mapper
@@ -30,9 +32,12 @@ const makeLearner = (params) => {
 	const M = K * degree + 1
 
 	const train = (originalSamples) => {
+		const scaler = new Scaler(originalDomain)
+		scaler.fit(originalSamples)
+
 		const samples = needsOneHotEncoding
-			? originalSamples.map((sample) => mapper.map(sample))
-			: originalSamples
+			? originalSamples.map((sample) => mapper.map(scaler.map(sample)))
+			: originalSamples.map((sample) => scaler.map(sample))
 		const N = samples.length
 
 		const a = new Array(N * M)
@@ -55,17 +60,19 @@ const makeLearner = (params) => {
 			b[i] = label
 		}
 
-		const weights = leastSquares(a, N, M, b)
+		const weights = ridgeNormalizationStrength !== 0
+			? ridge(a, N, M, b, ridgeNormalizationStrength)
+			: leastSquares(a, N, M, b)
 		const intercept = weights.pop()
 
-		return { weights, intercept }
+		return { scaler, weights, intercept }
 	}
 
 	const predict = (model, originalSample) => {
-		const { weights, intercept } = model
+		const { scaler, weights, intercept } = model
 		const sample = needsOneHotEncoding
-			? mapper.map(originalSample)
-			: originalSample
+			? mapper.map(scaler.map(originalSample))
+			: scaler.map(originalSample)
 
 		let dot = intercept
 		for (let k = 0; k < K; k++) {
@@ -78,7 +85,7 @@ const makeLearner = (params) => {
 			}
 		}
 
-		return { value: dot, p: null }
+		return { value: scaler.restoreLabel(dot), p: null }
 	}
 
 	return { train, predict, params }
