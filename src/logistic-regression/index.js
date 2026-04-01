@@ -10,7 +10,8 @@ const { zip: zipObject } = require('@kmamal/util/object/zip')
 const { softmax } = require('../softmax')
 
 
-const makeLearner = ({ domain: originalDomain, ridgeNormalizationStrength = 0 }) => {
+const makeLearner = (params) => {
+	const { domain: originalDomain, ridgeNormalizationStrength = 0 } = params
 	const needsOneHotEncoding = originalDomain.some((variable) => variable?.type === 'nominal')
 	let domain
 	let mapper
@@ -108,7 +109,7 @@ const makeLearner = ({ domain: originalDomain, ridgeNormalizationStrength = 0 })
 		return _predict(model, sample)
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 module.exports = { makeLearner }

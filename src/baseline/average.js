@@ -1,5 +1,6 @@
 
-const makeLearner = ({ domain }) => {
+const makeLearner = (params) => {
+	const { domain } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 
 	const train = (samples) => {
@@ -15,7 +16,7 @@ const makeLearner = ({ domain }) => {
 
 	const predict = (model, _) => ({ value: model.value, p: null })
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

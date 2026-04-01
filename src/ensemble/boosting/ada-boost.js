@@ -4,7 +4,8 @@ const { chooseFromPrefixSums } = require('@kmamal/util/random/weighted')
 const prefixSumsTo = prefixSums.to
 
 
-const makeLearner = ({ domain, baseLearner, k, fnAggregate }) => {
+const makeLearner = (params) => {
+	const { domain, baseLearner, k, fnAggregate } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 
 	const train = async (samples) => {
@@ -70,7 +71,7 @@ const makeLearner = ({ domain, baseLearner, k, fnAggregate }) => {
 		return fnAggregate(predictions)
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

@@ -1,7 +1,8 @@
 const { HyperplaneTree } = require('@kmamal/hyperplane-tree/for-points')
 
 
-const makeLearner = ({ domain, k, maxBinSize, fnAggregate }) => {
+const makeLearner = (params) => {
+	const { domain, k, maxBinSize, fnAggregate } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 
 	const train = (samples) => {
@@ -17,7 +18,7 @@ const makeLearner = ({ domain, k, maxBinSize, fnAggregate }) => {
 		return fnAggregate(results)
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

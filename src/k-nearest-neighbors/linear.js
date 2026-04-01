@@ -5,7 +5,8 @@ const { minNBy } = require('@kmamal/util/array/min-n')
 const JS = require('@kmamal/numbers/js')
 
 
-const makeLearner = ({ domain, k, fnAggregate }) => {
+const makeLearner = (params) => {
+	const { domain, k, fnAggregate } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 
 	const variables = domain.map((variable) => variable === null || variable.isLabel ? null : variable)
@@ -51,7 +52,7 @@ const makeLearner = ({ domain, k, fnAggregate }) => {
 		}))
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

@@ -1,7 +1,8 @@
 const { bootstrap } = require('../cross-validation/bootstrap')
 
 
-const makeLearner = ({ baseLearner, k, fnAggregate }) => {
+const makeLearner = (params) => {
+	const { baseLearner, k, fnAggregate } = params
 	const train = async (samples) => {
 		const baseModels = new Array(k)
 		const bootstrapped = new Array(samples.length)
@@ -20,7 +21,7 @@ const makeLearner = ({ baseLearner, k, fnAggregate }) => {
 		return fnAggregate(predictions)
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

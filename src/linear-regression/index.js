@@ -4,7 +4,8 @@ const { leastSquares } = require('@kmamal/linear-algebra/matrix/least-squares').
 
 const { Mapper } = require('@kmamal/domains/make-nominals-one-hot')
 
-const makeLearner = ({ domain: originalDomain, degree = 1 }) => {
+const makeLearner = (params) => {
+	const { domain: originalDomain, degree = 1 } = params
 	const needsOneHotEncoding = originalDomain.some((variable) => variable?.type === 'nominal')
 	let domain
 	let mapper
@@ -80,7 +81,7 @@ const makeLearner = ({ domain: originalDomain, degree = 1 }) => {
 		return { value: dot, p: null }
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 module.exports = { makeLearner }

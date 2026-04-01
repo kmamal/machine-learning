@@ -14,13 +14,14 @@ const fillWith$$$ = fillWith.$$$
 const JS = require('@kmamal/numbers/js')
 
 
-const makeLearner = ({
-	domain: originalDomain,
-	layout: _layout,
-	activationFunction,
-	learningRate,
-	k,
-}) => {
+const makeLearner = (params) => {
+	const {
+		domain: originalDomain,
+		layout: _layout,
+		activationFunction,
+		learningRate,
+		k,
+	} = params
 	const needsOneHotEncoding = originalDomain.some((variable) => variable?.type === 'nominal')
 	let domain
 	let mapper
@@ -220,8 +221,7 @@ const makeLearner = ({
 		return result
 	}
 
-
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

@@ -1,6 +1,7 @@
 const { kFold } = require('../cross-validation/k-fold')
 
-const makeLearner = ({ domain, baseLearners, k, makeMetaLearner }) => {
+const makeLearner = (params) => {
+	const { domain, baseLearners, k, makeMetaLearner } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 	const labelVariable = domain[labelIndex]
 
@@ -51,7 +52,7 @@ const makeLearner = ({ domain, baseLearners, k, makeMetaLearner }) => {
 		return metaLearner.predict(metaModel, predictions)
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

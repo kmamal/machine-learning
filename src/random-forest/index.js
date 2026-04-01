@@ -3,7 +3,8 @@ const { create } = require('@kmamal/util/array/create')
 const { chooseN } = require('@kmamal/util/random/choose-n')
 
 
-const makeLearner = ({ domain, makeBaseLearner, k, fnAggregate }) => {
+const makeLearner = (params) => {
+	const { domain, makeBaseLearner, k, fnAggregate } = params
 	const usedVariables = domain.map((variable, index) => {
 		if (variable === null || variable.isLabel) { return null }
 		return { ...variable, index }
@@ -43,7 +44,8 @@ const makeLearner = ({ domain, makeBaseLearner, k, fnAggregate }) => {
 		return fnAggregate(predictions)
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
+
 
 module.exports = { makeLearner }

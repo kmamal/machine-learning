@@ -1,7 +1,8 @@
 const { shuffle } = require('@kmamal/util/random/shuffle')
 const { holdout } = require('../cross-validation/holdout')
 
-const makeLearner = ({ domain, baseLearners, makeMetaLearner }) => {
+const makeLearner = (params) => {
+	const { domain, baseLearners, makeMetaLearner } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 	const labelVariable = domain[labelIndex]
 
@@ -48,7 +49,7 @@ const makeLearner = ({ domain, baseLearners, makeMetaLearner }) => {
 		return metaLearner.predict(metaModel, metaSample)
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

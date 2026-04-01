@@ -1,7 +1,8 @@
 const Counts = require('@kmamal/counts/map')
 
 
-const makeLearner = ({ domain }) => {
+const makeLearner = (params) => {
+	const { domain } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 
 	const train = (samples) => {
@@ -17,7 +18,7 @@ const makeLearner = ({ domain }) => {
 
 	const predict = (model, _) => model
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

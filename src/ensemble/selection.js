@@ -2,7 +2,8 @@ const { shuffle } = require('@kmamal/util/random/shuffle')
 const { holdout } = require('../cross-validation/holdout')
 const { EvaluationForClassification } = require('../evaluation-for-classification')
 
-const makeLearner = ({ domain, baseLearners, k }) => {
+const makeLearner = (params) => {
+	const { domain, baseLearners, k } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 
 	const train = async (samples) => {
@@ -44,7 +45,7 @@ const makeLearner = ({ domain, baseLearners, k }) => {
 		return baseLearner.predict(baseModel, sample)
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

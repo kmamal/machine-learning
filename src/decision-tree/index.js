@@ -10,7 +10,8 @@ const { addBy, popBy } = require('@kmamal/heap')
 const JS = require('@kmamal/numbers/js')
 
 
-const makeLearner = ({ domain, limit, filter }) => {
+const makeLearner = (params) => {
+	const { domain, limit, filter } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 	const labelVariable = domain[labelIndex]
 	const isLabelReal = labelVariable.type === 'real'
@@ -392,7 +393,7 @@ const makeLearner = ({ domain, limit, filter }) => {
 		return node
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 

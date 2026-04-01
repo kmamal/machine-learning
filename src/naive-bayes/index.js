@@ -55,7 +55,8 @@ class DensityEstimationLikelihoodPredictor {
 }
 
 
-const makeLearner = ({ domain }) => {
+const makeLearner = (params) => {
+	const { domain } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 
 	const variables = domain.map((originalVariable, index) => {
@@ -152,7 +153,7 @@ const makeLearner = ({ domain }) => {
 		return { value: bestLabel, p: bestLikelihood / total }
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 module.exports = { makeLearner }

@@ -3,7 +3,8 @@ const { prefixSums } = require('@kmamal/util/array/prefix-sums')
 const { chooseFromPrefixSums } = require('@kmamal/util/random/weighted')
 
 
-const makeLearner = ({ domain }) => {
+const makeLearner = (params) => {
+	const { domain } = params
 	const labelIndex = domain.findIndex((variable) => variable?.isLabel)
 
 	const train = (samples) => {
@@ -27,7 +28,7 @@ const makeLearner = ({ domain }) => {
 		return labels[index]
 	}
 
-	return { train, predict }
+	return { train, predict, params }
 }
 
 
