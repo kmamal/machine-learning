@@ -3,7 +3,7 @@ const { initialize } = require('./initialization/plus-plus')
 const { create } = require('@kmamal/util/array/create')
 const { copy } = require('@kmamal/util/array/copy')
 
-const copy$$$ = copy$$$
+const copy$$$ = copy.$$$
 
 const defineFor = memoize((V) => {
 	// throw new Error("needs to take into account the domain")
@@ -170,24 +170,27 @@ const defineFor = memoize((V) => {
 		for (let k = 0; k < K; k++) {
 			const cluster = clusters[k]
 			copy$$$(cluster.lastCenter, cluster.center)
-			const oldCount = cluster.count
+			const originalCount = cluster.count
 
 			if (cluster.toSubCount > 0) {
-				const newCount = cluster.count - cluster.toSubCount
-				scale$$$(cluster.center, oldCount / newCount)
+				const prevCount = cluster.count
+				const newCount = prevCount - cluster.toSubCount
+				scale$$$(cluster.center, prevCount / newCount)
 				scale$$$(cluster.toSub, N / newCount)
 				sub$$$(cluster.center, cluster.toSub)
+				cluster.count = newCount
 			}
 
 			if (cluster.toAddCount > 0) {
-				const newCount = cluster.count + cluster.toAddCount
-				scale$$$(cluster.center, oldCount / newCount)
+				const prevCount = cluster.count
+				const newCount = prevCount + cluster.toAddCount
+				scale$$$(cluster.center, prevCount / newCount)
 				scale$$$(cluster.toAdd, N / newCount)
 				add$$$(cluster.center, cluster.toAdd)
 				cluster.count = newCount
 			}
 
-			if (cluster.count !== oldCount) {
+			if (cluster.count !== originalCount) {
 				cluster.scale = 1 / cluster.count
 			}
 

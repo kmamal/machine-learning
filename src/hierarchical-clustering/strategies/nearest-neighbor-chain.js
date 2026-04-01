@@ -57,7 +57,8 @@ const agglomerate = (N, fnMake, fnDist, fnMerge) => {
 			const other = opposite(edgeA, curr)
 			if (stackSet.has(other)) {
 				removeBy(other.edges.array(), edgeA[other.indexKey], getDist, other.indexKey)
-			} else {
+			}
+			else {
 				other.edges.removeItem(edgeA)
 			}
 		}
@@ -71,13 +72,14 @@ const agglomerate = (N, fnMake, fnDist, fnMerge) => {
 			const other = opposite(edgeB, next)
 			if (stackSet.has(other)) {
 				removeBy(other.edges.array(), edgeB[other.indexKey], getDist, other.indexKey)
-			} else {
+			}
+			else {
 				other.edges.removeItem(edgeB)
 			}
 		}
 		delete next.edges
-		delete curr.indexKey
-		delete curr.incomingEdgeDist
+		delete next.indexKey
+		delete next.incomingEdgeDist
 		clusters.removeItem(next)
 
 		const merged = fnMerge(curr, next)

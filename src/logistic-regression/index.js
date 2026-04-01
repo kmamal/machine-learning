@@ -45,8 +45,8 @@ const makeLearner = ({ domain: originalDomain, ridgeNormalizationStrength = 0 })
 		const problem = {
 			func: (allWeights) => {
 				const model = {
-					weights: allWeights.slice(-K),
-					intercepts: allWeights.slice(0, -K),
+					weights: allWeights.slice(0, -K),
+					intercepts: allWeights.slice(-K),
 				}
 
 				let logLoss = 0
@@ -76,8 +76,8 @@ const makeLearner = ({ domain: originalDomain, ridgeNormalizationStrength = 0 })
 		const allWeights = result.solution
 		return {
 			scaler,
-			weights: allWeights.slice(-K),
-			intercepts: allWeights.slice(0, -K),
+			weights: allWeights.slice(0, -K),
+			intercepts: allWeights.slice(-K),
 		}
 	}
 

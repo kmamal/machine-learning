@@ -1,8 +1,7 @@
 import Fs from 'node:fs/promises'
 import Path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
-const rootDir = Path.resolve(Path.dirname(fileURLToPath(import.meta.url)), '..')
+const rootDir = Path.resolve(import.meta.dirname, '..')
 process.chdir(rootDir)
 
 const pkg = JSON.parse(await Fs.readFile('package.json', 'utf8'))
@@ -21,7 +20,8 @@ const recurse = async (dirPath) => {
 			) { continue }
 
 			await recurse(Path.join(dirPath, entry.name))
-		} else {
+		}
+		else {
 			if (false
 				|| !entry.name.endsWith('.js')
 				|| entry.name.endsWith('.test.js')

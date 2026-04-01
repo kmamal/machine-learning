@@ -95,7 +95,7 @@ class EvaluationForClassification {
 	}
 
 	trueNegativeRateForLabel (x) {
-		return this.falsePositivesForLabel(x)
+		return this.trueNegativesForLabel(x)
 			/ (this._size - this.countActualForLabel(x))
 	}
 
@@ -116,7 +116,7 @@ class EvaluationForClassification {
 	}
 
 	negativePredictiveValueForLabel (x) {
-		return this.trueNegativeForLabel(x)
+		return this.trueNegativesForLabel(x)
 			/ (this._size - this.countPredictedForLabel(x))
 	}
 

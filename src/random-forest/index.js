@@ -26,7 +26,7 @@ const makeLearner = ({ domain, makeBaseLearner, k, fnAggregate }) => {
 			for (const index of nulledIndexes) { subDomain[index] = null }
 
 			const baseLearner = makeBaseLearner({ domain: subDomain })
-			const baseModel = await baseLearner.train(samples)
+			const baseModel = await baseLearner.train(bootstrapped)
 			trees[j] = { baseLearner, baseModel }
 		}
 

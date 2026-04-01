@@ -114,7 +114,7 @@ const makeLearner = ({
 						const activation = layerActivations[0]
 						const expectedActivation = label
 						const error = activation - expectedActivation
-						layerDeltas[0] = error * activation
+						layerDeltas[0] = error
 					}
 					else {
 						for (let j = 0; j < layerActivations.length; j++) {
@@ -185,8 +185,8 @@ const makeLearner = ({
 			const N = lastLayerActivations.length + 1
 
 			for (let m = 0; m < M; m++) {
-				let dot = weights[m * N]
-				for (let n = 1; n < N - 1; n++) {
+				let dot = weights[m * N + N - 1]
+				for (let n = 0; n < N - 1; n++) {
 					dot += weights[m * N + n] * lastLayerActivations[n]
 				}
 				layerActivations[m] = isRegression && i === L - 1 ? dot : activation(dot)
@@ -214,7 +214,9 @@ const makeLearner = ({
 			: scaler.map(originalSample)
 
 		const result = _predict(model, sample)
-		result.value = model.scaler.restoreLabel(result.value)
+		if (isRegression) {
+			result.value = model.scaler.restoreLabel(result.value)
+		}
 		return result
 	}
 

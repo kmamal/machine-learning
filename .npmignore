@@ -1,5 +1,7 @@
-scripts
+/scripts/
+/viz/
 **/*.test.js
+**/*.benchmark.js
 **/testing/
+**/benchmarking/
 **/_*
-viz
