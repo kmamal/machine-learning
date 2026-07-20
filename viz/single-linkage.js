@@ -48,8 +48,7 @@ const refresh = () => {
 		ctx.stroke()
 	}
 
-	const buffer = Buffer.from(ctx.getImageData(0, 0, width, height).data)
-	window.render(width, height, width * 4, 'rgba32', buffer)
+	window.render(width, height, width * 4, 'rgba32', canvas.data())
 }
 
 refresh()

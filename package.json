@@ -6,7 +6,6 @@
     "type": "git",
     "url": "git+ssh://git@github.com:kmamal/machine-learning.git"
   },
-  "main": "src/index.js",
   "scripts": {
     "test": "npx @kmamal/testing",
     "update-exports": "node ./scripts/update-exports.mjs"
@@ -68,6 +67,7 @@
     "./ensemble/blending": "./src/ensemble/blending.js",
     "./ensemble/selection": "./src/ensemble/selection.js",
     "./ensemble/stacking": "./src/ensemble/stacking.js",
+    "./ensemble/boosting/gradient-boost": "./src/ensemble/boosting/gradient-boost.js",
     "./ensemble/boosting/ada-boost": "./src/ensemble/boosting/ada-boost.js",
     "./ensemble/bagging": "./src/ensemble/bagging.js",
     "./ensemble/aggregate/weighted-average": "./src/ensemble/aggregate/weighted-average.js",

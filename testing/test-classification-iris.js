@@ -20,6 +20,7 @@ const Stacking = require('../src/ensemble/stacking')
 const Blending = require('../src/ensemble/blending')
 
 const AdaBoost = require('../src/ensemble/boosting/ada-boost')
+const GradientBoost = require('../src/ensemble/boosting/gradient-boost')
 const RandomForest = require('../src/random-forest')
 
 const { EvaluationForClassification } = require('../src/evaluation-for-classification')
@@ -161,6 +162,18 @@ loadDataset('iris').then(async ({ domain, samples }) => {
 				}),
 				k: 20,
 				fnAggregate: require('../src/ensemble/aggregate/majority').aggregate,
+			}),
+		},
+		{
+			name: 'gradient boost',
+			...GradientBoost.makeLearner({
+				domain,
+				makeBaseLearner: (options) => DecisionTree.makeLearner({
+					limit: (x) => x.splits === 3,
+					...options,
+				}),
+				k: 50,
+				learningRate: 0.1,
 			}),
 		},
 	]

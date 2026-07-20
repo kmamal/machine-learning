@@ -54,8 +54,7 @@ const render = () => {
 		ctx.fillRect(x - 1, y - 5, 2, 10)
 	}
 
-	const buffer = Buffer.from(ctx.getImageData(0, 0, width, height).data)
-	window.render(width, height, width * 4, 'rgba32', buffer)
+	window.render(width, height, width * 4, 'rgba32', canvas.data())
 }
 
 const reset = () => {

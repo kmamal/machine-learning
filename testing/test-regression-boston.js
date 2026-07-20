@@ -19,6 +19,7 @@ const Stacking = require('../src/ensemble/stacking')
 const Blending = require('../src/ensemble/blending')
 
 const AdaBoost = require('../src/ensemble/boosting/ada-boost')
+const GradientBoost = require('../src/ensemble/boosting/gradient-boost')
 const RandomForest = require('../src/random-forest')
 
 const { EvaluationForRegression } = require('../src/evaluation-for-regression')
@@ -130,6 +131,18 @@ loadDataset('boston').then(async ({ domain, samples }) => {
 				}),
 				k: 20,
 				fnAggregate: require('../src/ensemble/aggregate/average').aggregate,
+			}),
+		},
+		{
+			name: 'gradient boost',
+			...GradientBoost.makeLearner({
+				domain,
+				makeBaseLearner: (options) => DecisionTree.makeLearner({
+					limit: (x) => x.splits === 3,
+					...options,
+				}),
+				k: 100,
+				learningRate: 0.1,
 			}),
 		},
 	]
